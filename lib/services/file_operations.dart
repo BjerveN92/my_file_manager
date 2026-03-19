@@ -90,21 +90,19 @@ class FileOperations {
   }
 
   // =============================================================
-  // getHomeDirectory() — Hämta användarens skrivbord
+  // getHomeDirectory() — Hämta användarens hemkatalog
   // =============================================================
-  // På Windows: C:\Users\DittNamn\Desktop
-  // På macOS:   /Users/DittNamn/Desktop
-  // På Linux:   /home/dittnamn/Desktop
+  // På Windows: C:\Users\DittNamn  (USERPROFILE)
+  // På macOS:   /Users/DittNamn    (HOME)
+  // På Linux:   /home/dittnamn     (HOME)
   // =============================================================
   static String getHomeDirectory() {
     // Platform.environment är en Map med alla miljövariabler.
     // På Windows heter den 'USERPROFILE', på Unix 'HOME'.
     if (Platform.isWindows) {
-      final userProfile = Platform.environment['USERPROFILE'] ?? 'C:\\';
-      return '$userProfile\\Desktop';
+      return Platform.environment['USERPROFILE'] ?? 'C:\\';
     } else {
-      final home = Platform.environment['HOME'] ?? '/';
-      return '$home/Desktop';
+      return Platform.environment['HOME'] ?? '/';
     }
   }
 
@@ -115,7 +113,7 @@ class FileOperations {
   // som vi visar i sidopanelen.
   // =============================================================
   static List<Map<String, String>> getCommonDirectories() {
-    final home = getHomeDirectory();
+    final home = getHomeDirectory(); // = C:\Users\marti
     final pathSep = Platform.pathSeparator; // \ på Windows, / på Unix
 
     return [
