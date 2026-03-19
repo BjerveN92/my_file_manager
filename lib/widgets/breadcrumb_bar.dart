@@ -43,9 +43,7 @@ class BreadcrumbBar extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
         color: Colors.grey.shade900,
-        border: Border(
-          bottom: BorderSide(color: Colors.grey.shade800),
-        ),
+        border: Border(bottom: BorderSide(color: Colors.grey.shade800)),
       ),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
@@ -62,8 +60,12 @@ class BreadcrumbBar extends StatelessWidget {
 
               // Bygg upp sökvägen till denna del
               // T.ex. index 1 → "/home/user"
-              final pathUpToHere = Platform.pathSeparator +
-                  parts.sublist(0, index + 1).join(Platform.pathSeparator);
+              final pathUpToHere = Platform.isWindows
+                  ? parts.sublist(0, index + 1).join(Platform.pathSeparator)
+                  : Platform.pathSeparator +
+                        parts
+                            .sublist(0, index + 1)
+                            .join(Platform.pathSeparator);
 
               return Row(
                 mainAxisSize: MainAxisSize.min,
@@ -83,8 +85,9 @@ class BreadcrumbBar extends StatelessWidget {
                           fontSize: 13,
                           // Sista delen (nuvarande mapp) är ljusare
                           color: isLast ? Colors.white : Colors.grey.shade400,
-                          fontWeight:
-                              isLast ? FontWeight.w600 : FontWeight.normal,
+                          fontWeight: isLast
+                              ? FontWeight.w600
+                              : FontWeight.normal,
                         ),
                       ),
                     ),
