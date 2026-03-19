@@ -1,17 +1,64 @@
-# my_file_manager
+# File Manager
 
-A new Flutter project.
+En kolumnbaserad filhanterare (Miller Columns) byggd med Flutter som examensarbete.
+Inspirerad av macOS Finders kolumnvy, med stöd för färgläggning av mappar.
 
-## Getting Started
+## Status
 
-This project is a starting point for a Flutter application.
+Projektet är i tidig utvecklingsfas. Grundläggande navigation och mappfärger fungerar.
 
-A few resources to get you started if this is your first Flutter project:
+### Implementerat
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+- Miller Columns-navigation (klicka på mapp → ny kolumn till höger)
+- Sidebar med snabbåtkomst (Hem, Dokument, Nedladdningar, etc.)
+- Breadcrumb-bar för sökvägsnavigation
+- Färgtaggar på mappar (långtryck → välj färg)
+- Färger sparas lokalt mellan sessioner
+- Filtypsikoner baserat på filändelse
+- Mörkt tema
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+### Kommande
+
+- Context menu (högerklick)
+- Öppna/förhandsgranska filer
+- Sökfunktion
+
+## Krav
+
+- Flutter SDK ≥ 3.0
+- Windows (projektet är skapat med `--platforms=windows`)
+
+## Kom igång
+
+```bash
+git clone <repo-url>
+cd file_manager
+flutter pub get
+flutter run -d windows
+```
+
+## Projektstruktur
+
+```
+lib/
+├── main.dart                  # Startpunkt
+├── models/
+│   ├── file_item.dart         # Datamodell för filer/mappar
+│   └── color_tags.dart        # Färgtaggar (enum)
+├── screens/
+│   └── home_screen.dart       # Huvudskärm (layout)
+├── services/
+│   ├── file_operations.dart   # Läser filsystemet
+│   └── folder_color_store.dart # Sparar mappfärger
+└── widgets/
+    ├── column_browser.dart    # Miller Columns-vy
+    ├── breadcrumb_bar.dart    # Sökvägsnavigation
+    └── sidebar.dart           # Snabbåtkomst-panel
+```
+
+## Teknik
+
+- **Språk:** Dart
+- **Ramverk:** Flutter
+- **State management:** setState (planerar utvärdera Riverpod)
+- **Lokal lagring:** SharedPreferences
