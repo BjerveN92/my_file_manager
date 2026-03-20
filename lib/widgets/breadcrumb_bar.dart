@@ -47,8 +47,6 @@ class BreadcrumbBar extends StatelessWidget {
       ),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
-        // Starta scroll från höger (senaste mappen syns)
-        reverse: true,
         child: Row(
           children: [
             // .asMap() ger oss index + värde (som enumerate i Python)
@@ -98,7 +96,7 @@ class BreadcrumbBar extends StatelessWidget {
                     Icon(
                       Icons.chevron_right,
                       size: 16,
-                      color: Colors.grey.shade600,
+                      color: const Color.fromARGB(255, 35, 145, 62),
                     ),
                 ],
               );
