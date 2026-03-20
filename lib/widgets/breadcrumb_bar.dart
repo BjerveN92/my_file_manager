@@ -80,9 +80,11 @@ class BreadcrumbBar extends StatelessWidget {
                       child: Text(
                         part,
                         style: TextStyle(
-                          fontSize: 13,
+                          fontSize: 16,
                           // Sista delen (nuvarande mapp) är ljusare
-                          color: isLast ? Colors.white : Colors.grey.shade400,
+                          color: isLast
+                              ? const Color.fromARGB(255, 194, 206, 25)
+                              : const Color.fromARGB(255, 118, 146, 15),
                           fontWeight: isLast
                               ? FontWeight.w600
                               : FontWeight.normal,
@@ -96,7 +98,7 @@ class BreadcrumbBar extends StatelessWidget {
                     Icon(
                       Icons.chevron_right,
                       size: 16,
-                      color: const Color.fromARGB(255, 35, 145, 62),
+                      color: const Color.fromARGB(255, 194, 206, 25),
                     ),
                 ],
               );

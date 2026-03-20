@@ -43,11 +43,11 @@ class Sidebar extends StatelessWidget {
           const Padding(
             padding: EdgeInsets.all(16),
             child: Text(
-              'Platser',
+              'Mina filer',
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
-                color: Color.fromARGB(255, 69, 138, 63),
+                color: Color.fromARGB(255, 194, 206, 25),
                 letterSpacing: 1.2,
               ),
             ),
