@@ -114,15 +114,56 @@ class FileOperations {
   // =============================================================
   static List<Map<String, String>> getCommonDirectories() {
     final home = getHomeDirectory(); // = C:\Users\marti
-    final pathSep = Platform.pathSeparator; // \ på Windows, / på Unix
+    final sep = Platform.pathSeparator;
+
+    // Provar sökvägarna i ordning och returnerar den första som existerar.
+    // Fungerar oavsett om mapparna har svenska eller engelska namn,
+    // eller om de ligger på icke-standardplatser.
+    String resolve(List<String> candidates) {
+      for (final path in candidates) {
+        if (Directory(path).existsSync()) return path;
+      }
+      return candidates.first; // fallback om ingen hittas
+    }
 
     return [
       {'name': 'Hem', 'path': home},
-      {'name': 'Skrivbord', 'path': '$home${pathSep}Desktop'},
-      {'name': 'Dokument', 'path': '$home${pathSep}Documents'},
-      {'name': 'Nedladdningar', 'path': '$home${pathSep}Downloads'},
-      {'name': 'Bilder', 'path': '$home${pathSep}Pictures'},
-      {'name': 'Musik', 'path': '$home${pathSep}Music'},
+      {
+        'name': 'Skrivbord',
+        'path': resolve([
+          'C:\\Skrivbord',
+          '$home${sep}Skrivbord',
+          '$home${sep}Desktop',
+        ]),
+      },
+      {
+        'name': 'Dokument',
+        'path': resolve([
+          '$home${sep}Dokument',
+          '$home${sep}Documents',
+        ]),
+      },
+      {
+        'name': 'Nedladdningar',
+        'path': resolve([
+          '$home${sep}Nedladdningar',
+          '$home${sep}Downloads',
+        ]),
+      },
+      {
+        'name': 'Bilder',
+        'path': resolve([
+          '$home${sep}Bilder',
+          '$home${sep}Pictures',
+        ]),
+      },
+      {
+        'name': 'Musik',
+        'path': resolve([
+          '$home${sep}Musik',
+          '$home${sep}Music',
+        ]),
+      },
     ];
   }
 }
