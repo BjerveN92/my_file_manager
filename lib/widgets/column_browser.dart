@@ -61,10 +61,7 @@ class ColumnBrowser extends StatefulWidget {
   // initialPath = mappen vi börjar visa
   final String initialPath;
 
-  const ColumnBrowser({
-    super.key,
-    required this.initialPath,
-  });
+  const ColumnBrowser({super.key, required this.initialPath});
 
   // createState() skapar state-klassen. Anropas EN gång.
   @override
@@ -76,10 +73,10 @@ class _ColumnBrowserState extends State<ColumnBrowser> {
   // ----- State-variabler -----
   // Dessa ÄR saker som kan ändras och trigga omritning.
 
-  List<ColumnData> _columns = [];               // Alla aktiva kolumner
-  Map<String, ColorTag> _folderColors = {};      // Sparade mappfärger
-  bool _isLoading = true;                        // Visar laddningsindikator
-  final ScrollController _scrollController =     // Kontrollerar horisontell scroll
+  List<ColumnData> _columns = []; // Alla aktiva kolumner
+  Map<String, ColorTag> _folderColors = {}; // Sparade mappfärger
+  bool _isLoading = true; // Visar laddningsindikator
+  final ScrollController _scrollController = // Kontrollerar horisontell scroll
       ScrollController();
 
   // =============================================================
@@ -119,9 +116,7 @@ class _ColumnBrowserState extends State<ColumnBrowser> {
     // användaren inte förändringen.
     setState(() {
       _folderColors = colors;
-      _columns = [
-        ColumnData(path: widget.initialPath, items: items),
-      ];
+      _columns = [ColumnData(path: widget.initialPath, items: items)];
       _isLoading = false;
     });
   }
@@ -156,13 +151,12 @@ class _ColumnBrowserState extends State<ColumnBrowser> {
       });
 
       // Scrolla till höger så nya kolumnen syns
-      // Vi väntar lite (en frame) så att layouten hinner byggas
       Future.delayed(const Duration(milliseconds: 50), () {
         if (_scrollController.hasClients) {
           _scrollController.animateTo(
             _scrollController.position.maxScrollExtent,
             duration: const Duration(milliseconds: 300),
-            curve: Curves.easeOut, // Mjuk animation
+            curve: Curves.easeOut,
           );
         }
       });
@@ -227,8 +221,8 @@ class _ColumnBrowserState extends State<ColumnBrowser> {
                 child: tag == ColorTag.none
                     ? const Icon(Icons.block, size: 20, color: Colors.grey)
                     : isSelected
-                        ? const Icon(Icons.check, size: 20, color: Colors.white)
-                        : null,
+                    ? const Icon(Icons.check, size: 20, color: Colors.white)
+                    : null,
               ),
             );
           }).toList(),
@@ -252,14 +246,10 @@ class _ColumnBrowserState extends State<ColumnBrowser> {
       controller: _scrollController,
       child: SingleChildScrollView(
         controller: _scrollController,
-        scrollDirection: Axis.horizontal, // Scrolla horisontellt!
+        scrollDirection: Axis.horizontal,
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Bygg en _ColumnWidget för varje kolumn i vår lista
-            for (int i = 0; i < _columns.length; i++)
-              _buildColumn(i),
-          ],
+          children: [for (int i = 0; i < _columns.length; i++) _buildColumn(i)],
         ),
       ),
     );
@@ -272,14 +262,10 @@ class _ColumnBrowserState extends State<ColumnBrowser> {
     final column = _columns[columnIndex];
 
     return Container(
-      // Varje kolumn har fast bredd och en avgränsare till höger
       width: 280,
       decoration: BoxDecoration(
         border: Border(
-          right: BorderSide(
-            color: Colors.grey.shade800,
-            width: 1,
-          ),
+          right: BorderSide(color: Colors.grey.shade800, width: 1),
         ),
       ),
       child: column.items.isEmpty
@@ -287,10 +273,7 @@ class _ColumnBrowserState extends State<ColumnBrowser> {
           ? const Center(
               child: Padding(
                 padding: EdgeInsets.all(16),
-                child: Text(
-                  'Tom mapp',
-                  style: TextStyle(color: Colors.grey),
-                ),
+                child: Text('Tom mapp', style: TextStyle(color: Colors.grey)),
               ),
             )
           // ListView.builder skapar items LAZY — bara de som syns på skärmen.
@@ -352,11 +335,7 @@ class _ColumnBrowserState extends State<ColumnBrowser> {
 
             // ----- Pil för mappar (visar att man kan navigera in) -----
             if (item.isDirectory)
-              Icon(
-                Icons.chevron_right,
-                size: 16,
-                color: Colors.grey.shade600,
-              ),
+              Icon(Icons.chevron_right, size: 16, color: Colors.grey.shade600),
           ],
         ),
       ),

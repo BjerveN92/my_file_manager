@@ -84,6 +84,7 @@ class _HomeScreenState extends State<HomeScreen> {
           // Expanded = ta upp RESTEN av platsen (efter sidebar)
           Expanded(
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // --- Toppen: Breadcrumb ---
                 BreadcrumbBar(
