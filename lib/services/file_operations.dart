@@ -119,6 +119,29 @@ class FileOperations {
     await Process.run('cmd', ['/c', 'start', '', path]);
   }
 
+  // =============================================================
+  // deleteFile() — Ta bort en fil permanent
+  // =============================================================
+  static Future<void> deleteFile(String path) async {
+    await File(path).delete();
+  }
+
+  // =============================================================
+  // renameFile() — Byt namn på en fil
+  // =============================================================
+  static Future<void> renameFile(String path, String newName) async {
+    final parent = File(path).parent.path;
+    await File(path).rename('$parent\\$newName');
+  }
+
+  // =============================================================
+  // copyFile() — Kopiera en fil till en annan mapp
+  // =============================================================
+  static Future<void> copyFile(String sourcePath, String destinationFolder) async {
+    final name = sourcePath.split('\\').last;
+    await File(sourcePath).copy('$destinationFolder\\$name');
+  }
+
   static List<Map<String, String>> getCommonDirectories() {
     final home = getHomeDirectory(); // = C:\Users\marti
     final sep = Platform.pathSeparator;

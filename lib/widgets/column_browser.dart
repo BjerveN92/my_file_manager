@@ -84,6 +84,9 @@ class _ColumnBrowserState extends State<ColumnBrowser> {
   String? _lastTapPath;
   static const _doubleTapThreshold = Duration(milliseconds: 300);
 
+  // Intern clipboard — sökväg till senast kopierade filen
+  String? _copiedFilePath;
+
   // =============================================================
   // initState() — Körs EN gång när widgeten skapas
   // =============================================================
@@ -193,6 +196,101 @@ class _ColumnBrowserState extends State<ColumnBrowser> {
   // =============================================================
   Future<void> _openFile(FileItem item) async {
     await FileOperations.openFile(item.path);
+  }
+
+  // =============================================================
+  // _refreshColumn() — Ladda om en kolumns innehåll efter en operation
+  // =============================================================
+  Future<void> _refreshColumn(int columnIndex) async {
+    final path = _columns[columnIndex].path;
+    final items = await FileOperations.listDirectory(path);
+    setState(() {
+      _columns[columnIndex] = ColumnData(path: path, items: items);
+    });
+  }
+
+  // =============================================================
+  // _showFileContextMenu() — Visa högerklick-meny för filer
+  // =============================================================
+  Future<void> _showFileContextMenu(
+      BuildContext ctx, Offset position, FileItem item, int columnIndex) async {
+    final result = await showMenu<String>(
+      context: ctx,
+      position: RelativeRect.fromLTRB(
+          position.dx, position.dy, position.dx, position.dy),
+      items: [
+        const PopupMenuItem(value: 'copy', child: Text('Kopiera')),
+        PopupMenuItem(
+          value: 'paste',
+          enabled: _copiedFilePath != null,
+          child: const Text('Klistra in'),
+        ),
+        const PopupMenuItem(value: 'rename', child: Text('Byta namn')),
+        const PopupMenuItem(value: 'delete', child: Text('Ta bort')),
+      ],
+    );
+
+    switch (result) {
+      case 'copy':
+        setState(() => _copiedFilePath = item.path);
+      case 'paste':
+        await _pasteFile(columnIndex);
+      case 'rename':
+        await _renameFile(item, columnIndex);
+      case 'delete':
+        await _deleteFile(item, columnIndex);
+    }
+  }
+
+  Future<void> _pasteFile(int columnIndex) async {
+    if (_copiedFilePath == null) return;
+    final destFolder = _columns[columnIndex].path;
+    await FileOperations.copyFile(_copiedFilePath!, destFolder);
+    await _refreshColumn(columnIndex);
+  }
+
+  Future<void> _renameFile(FileItem item, int columnIndex) async {
+    final controller = TextEditingController(text: item.name);
+    final newName = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Byta namn'),
+        content: TextField(controller: controller, autofocus: true),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx), child: const Text('Avbryt')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+            child: const Text('Spara'),
+          ),
+        ],
+      ),
+    );
+    if (newName != null && newName.isNotEmpty && newName != item.name) {
+      await FileOperations.renameFile(item.path, newName);
+      await _refreshColumn(columnIndex);
+    }
+  }
+
+  Future<void> _deleteFile(FileItem item, int columnIndex) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Ta bort ${item.name}?'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Avbryt')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Ta bort')),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      await FileOperations.deleteFile(item.path);
+      await _refreshColumn(columnIndex);
+    }
   }
 
   // =============================================================
@@ -315,6 +413,7 @@ class _ColumnBrowserState extends State<ColumnBrowser> {
                   item: item,
                   isSelected: isSelected,
                   folderColor: folderColor,
+                  columnIndex: columnIndex,
                   onTap: () => _onItemTapped(columnIndex, itemIndex),
                   onLongPress: item.isDirectory
                       ? () => _showColorPicker(item)
@@ -332,10 +431,11 @@ class _ColumnBrowserState extends State<ColumnBrowser> {
     required FileItem item,
     required bool isSelected,
     ColorTag? folderColor,
+    required int columnIndex,
     required VoidCallback onTap,
     VoidCallback? onLongPress,
   }) {
-    return InkWell(
+    final inkWell = InkWell(
       onTap: onTap,
       onLongPress: onLongPress,
       child: Container(
@@ -365,6 +465,14 @@ class _ColumnBrowserState extends State<ColumnBrowser> {
           ],
         ),
       ),
+    );
+
+    if (item.isDirectory) return inkWell;
+
+    return GestureDetector(
+      onSecondaryTapUp: (details) =>
+          _showFileContextMenu(context, details.globalPosition, item, columnIndex),
+      child: inkWell,
     );
   }
 
