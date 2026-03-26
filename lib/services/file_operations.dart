@@ -112,6 +112,13 @@ class FileOperations {
   // Returnerar en lista med vanliga mappar (Dokument, Skrivbord, etc.)
   // som vi visar i sidopanelen.
   // =============================================================
+  // =============================================================
+  // openFile() — Öppna en fil med systemets standardprogram
+  // =============================================================
+  static Future<void> openFile(String path) async {
+    await Process.run('cmd', ['/c', 'start', '', path]);
+  }
+
   static List<Map<String, String>> getCommonDirectories() {
     final home = getHomeDirectory(); // = C:\Users\marti
     final sep = Platform.pathSeparator;

@@ -79,6 +79,11 @@ class _ColumnBrowserState extends State<ColumnBrowser> {
   final ScrollController _scrollController = // Kontrollerar horisontell scroll
       ScrollController();
 
+  // Dubbelklicks-detektering utan InkWell.onDoubleTap (undviker tap-delay)
+  DateTime? _lastTapTime;
+  String? _lastTapPath;
+  static const _doubleTapThreshold = Duration(milliseconds: 300);
+
   // =============================================================
   // initState() — Körs EN gång när widgeten skapas
   // =============================================================
@@ -129,6 +134,20 @@ class _ColumnBrowserState extends State<ColumnBrowser> {
   // =============================================================
   Future<void> _onItemTapped(int columnIndex, int itemIndex) async {
     final item = _columns[columnIndex].items[itemIndex];
+    final now = DateTime.now();
+
+    // Kolla om det är ett dubbelklick (samma item, inom tidsgränsen)
+    final isDoubleTap = _lastTapTime != null &&
+        _lastTapPath == item.path &&
+        now.difference(_lastTapTime!) < _doubleTapThreshold;
+
+    _lastTapTime = now;
+    _lastTapPath = item.path;
+
+    if (isDoubleTap && !item.isDirectory) {
+      await _openFile(item);
+      return;
+    }
 
     // Markera raden som vald
     _columns[columnIndex].selectedIndex = itemIndex;
@@ -167,6 +186,13 @@ class _ColumnBrowserState extends State<ColumnBrowser> {
         _columns = _columns.sublist(0, columnIndex + 1);
       });
     }
+  }
+
+  // =============================================================
+  // _openFile() — Öppna en fil med systemets standardprogram
+  // =============================================================
+  Future<void> _openFile(FileItem item) async {
+    await FileOperations.openFile(item.path);
   }
 
   // =============================================================
