@@ -140,7 +140,8 @@ class _ColumnBrowserState extends State<ColumnBrowser> {
     final now = DateTime.now();
 
     // Kolla om det är ett dubbelklick (samma item, inom tidsgränsen)
-    final isDoubleTap = _lastTapTime != null &&
+    final isDoubleTap =
+        _lastTapTime != null &&
         _lastTapPath == item.path &&
         now.difference(_lastTapTime!) < _doubleTapThreshold;
 
@@ -213,11 +214,19 @@ class _ColumnBrowserState extends State<ColumnBrowser> {
   // _showFileContextMenu() — Visa högerklick-meny för filer
   // =============================================================
   Future<void> _showFileContextMenu(
-      BuildContext ctx, Offset position, FileItem item, int columnIndex) async {
+    BuildContext ctx,
+    Offset position,
+    FileItem item,
+    int columnIndex,
+  ) async {
     final result = await showMenu<String>(
       context: ctx,
       position: RelativeRect.fromLTRB(
-          position.dx, position.dy, position.dx, position.dy),
+        position.dx,
+        position.dy,
+        position.dx,
+        position.dy,
+      ),
       items: [
         const PopupMenuItem(value: 'copy', child: Text('Kopiera')),
         PopupMenuItem(
@@ -258,7 +267,9 @@ class _ColumnBrowserState extends State<ColumnBrowser> {
         content: TextField(controller: controller, autofocus: true),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx), child: const Text('Avbryt')),
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Avbryt'),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, controller.text.trim()),
             child: const Text('Spara'),
@@ -279,11 +290,13 @@ class _ColumnBrowserState extends State<ColumnBrowser> {
         title: Text('Ta bort ${item.name}?'),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Avbryt')),
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Avbryt'),
+          ),
           TextButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Ta bort')),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Ta bort'),
+          ),
         ],
       ),
     );
@@ -313,46 +326,89 @@ class _ColumnBrowserState extends State<ColumnBrowser> {
   // =============================================================
   // _showColorPicker() — Visa färgväljare för en mapp
   // =============================================================
-  void _showColorPicker(FileItem item) {
+  Future<void> _showDirectoryContextMenu(
+    BuildContext ctx,
+    Offset position,
+    FileItem item,
+    int columnIndex,
+  ) async {
     final currentColor = _folderColors[item.path] ?? ColorTag.none;
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Färg för ${item.name}'),
-        content: Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: ColorTag.values.map((tag) {
-            final isSelected = tag == currentColor;
-            return GestureDetector(
-              onTap: () {
-                _onFolderColorChanged(item.path, tag);
-                Navigator.of(context).pop(); // Stäng dialogen
-              },
-              child: Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: tag == ColorTag.none
-                      ? Colors.grey.shade800
-                      : tag.color,
-                  shape: BoxShape.circle,
-                  border: isSelected
-                      ? Border.all(color: Colors.white, width: 3)
-                      : null,
-                ),
-                child: tag == ColorTag.none
-                    ? const Icon(Icons.block, size: 20, color: Colors.grey)
-                    : isSelected
-                    ? const Icon(Icons.check, size: 20, color: Colors.white)
-                    : null,
-              ),
-            );
-          }).toList(),
-        ),
+    final result = await showMenu<String>(
+      context: ctx,
+      position: RelativeRect.fromLTRB(
+        position.dx,
+        position.dy,
+        position.dx,
+        position.dy,
       ),
+      items: [
+        const PopupMenuItem(value: 'copy', child: Text('Kopiera')),
+        PopupMenuItem(
+          value: 'paste',
+          enabled: _copiedFilePath != null,
+          child: const Text('Klistra in'),
+        ),
+        const PopupMenuItem(value: 'rename', child: Text('Byta namn')),
+        const PopupMenuItem(value: 'delete', child: Text('Ta bort')),
+        const PopupMenuDivider(),
+        PopupMenuItem(
+          enabled: false,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Mappfärg', style: TextStyle(fontSize: 12)),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: ColorTag.values.map((tag) {
+                  final isSelected = tag == currentColor;
+                  return GestureDetector(
+                    onTap: () => Navigator.pop(ctx, 'color_${tag.name}'),
+                    child: Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: tag == ColorTag.none
+                            ? Colors.grey.shade800
+                            : tag.color,
+                        shape: BoxShape.circle,
+                        border: isSelected
+                            ? Border.all(color: Colors.white, width: 3)
+                            : null,
+                      ),
+                      child: tag == ColorTag.none
+                          ? const Icon(Icons.block, size: 16, color: Colors.grey)
+                          : isSelected
+                              ? const Icon(Icons.check, size: 16, color: Colors.white)
+                              : null,
+                    ),
+                  );
+                }).toList(),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
+
+    if (result == null) return;
+    if (result.startsWith('color_')) {
+      final tagName = result.substring(6);
+      final tag = ColorTag.values.firstWhere((t) => t.name == tagName);
+      _onFolderColorChanged(item.path, tag);
+      return;
+    }
+    switch (result) {
+      case 'copy':
+        setState(() => _copiedFilePath = item.path);
+      case 'paste':
+        await _pasteFile(columnIndex);
+      case 'rename':
+        await _renameFile(item, columnIndex);
+      case 'delete':
+        await _deleteFile(item, columnIndex);
+    }
   }
 
   // =============================================================
@@ -415,9 +471,7 @@ class _ColumnBrowserState extends State<ColumnBrowser> {
                   folderColor: folderColor,
                   columnIndex: columnIndex,
                   onTap: () => _onItemTapped(columnIndex, itemIndex),
-                  onLongPress: item.isDirectory
-                      ? () => _showColorPicker(item)
-                      : null,
+                  onLongPress: null,
                 );
               },
             ),
@@ -467,11 +521,20 @@ class _ColumnBrowserState extends State<ColumnBrowser> {
       ),
     );
 
-    if (item.isDirectory) return inkWell;
-
     return GestureDetector(
-      onSecondaryTapUp: (details) =>
-          _showFileContextMenu(context, details.globalPosition, item, columnIndex),
+      onSecondaryTapUp: (details) => item.isDirectory
+          ? _showDirectoryContextMenu(
+              context,
+              details.globalPosition,
+              item,
+              columnIndex,
+            )
+          : _showFileContextMenu(
+              context,
+              details.globalPosition,
+              item,
+              columnIndex,
+            ),
       child: inkWell,
     );
   }
