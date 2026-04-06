@@ -24,15 +24,9 @@ import 'package:flutter/material.dart';
 import '../models/file_item.dart';
 import '../models/color_tags.dart';
 import '../services/file_operations.dart';
-import '../services/folder_color_store.dart';
 
 // =============================================================
 // ColumnData — Hjälpklass som håller data för EN kolumn
-// =============================================================
-// Varje kolumn har:
-//   - path: vilken mapp den visar
-//   - items: filerna/mapparna i den mappen
-//   - selectedIndex: vilken rad som är markerad (eller -1)
 // =============================================================
 class ColumnData {
   final String path;
@@ -49,81 +43,60 @@ class ColumnData {
 // =============================================================
 // ColumnBrowser — Vår Miller Columns-widget
 // =============================================================
-// StatefulWidget består av TVÅ klasser:
-//   1. Widgeten själv (ColumnBrowser) — konfigurationen
-//   2. State-klassen (_ColumnBrowserState) — logik och state
-//
-// VARFÖR TVÅ KLASSER?
-//   Widgeten kan byggas om av Flutter, men state-klassen lever kvar.
-//   Det betyder att data (våra kolumner) inte försvinner vid omritning.
-// =============================================================
 class ColumnBrowser extends StatefulWidget {
-  // initialPath = mappen vi börjar visa
   final String initialPath;
 
-  const ColumnBrowser({super.key, required this.initialPath});
+  // Mappfärger ägs av HomeScreen och skickas hit för visning.
+  // När en färg ändras (via Sidebar) uppdateras denna map och
+  // Flutter ritar om automatiskt.
+  final Map<String, ColorTag> folderColors;
 
-  // createState() skapar state-klassen. Anropas EN gång.
+  // Callback till HomeScreen när användaren markerar en mapp.
+  // Skickar null om en fil markerades (ingen mapp vald).
+  final void Function(String? path)? onFolderSelected;
+
+  const ColumnBrowser({
+    super.key,
+    required this.initialPath,
+    required this.folderColors,
+    this.onFolderSelected,
+  });
+
   @override
   State<ColumnBrowser> createState() => _ColumnBrowserState();
 }
 
-// Understreck (_) i namnet gör klassen PRIVAT — bara denna fil kan använda den.
 class _ColumnBrowserState extends State<ColumnBrowser> {
-  // ----- State-variabler -----
-  // Dessa ÄR saker som kan ändras och trigga omritning.
+  List<ColumnData> _columns = [];
+  bool _isLoading = true;
+  final ScrollController _scrollController = ScrollController();
 
-  List<ColumnData> _columns = []; // Alla aktiva kolumner
-  Map<String, ColorTag> _folderColors = {}; // Sparade mappfärger
-  bool _isLoading = true; // Visar laddningsindikator
-  final ScrollController _scrollController = // Kontrollerar horisontell scroll
-      ScrollController();
-
-  // Dubbelklicks-detektering utan InkWell.onDoubleTap (undviker tap-delay)
   DateTime? _lastTapTime;
   String? _lastTapPath;
   static const _doubleTapThreshold = Duration(milliseconds: 300);
 
-  // Intern clipboard — sökväg till senast kopierade filen
   String? _copiedFilePath;
 
-  // =============================================================
-  // initState() — Körs EN gång när widgeten skapas
-  // =============================================================
-  // Perfekt ställe att ladda initial data.
-  // Tänk på det som "konstruktorn" för state.
-  // =============================================================
   @override
   void initState() {
-    super.initState(); // Alltid anropa super först!
+    super.initState();
     _loadInitialData();
   }
 
-  // =============================================================
-  // dispose() — Körs när widgeten tas bort
-  // =============================================================
-  // Rensa upp resurser (controllers, listeners, etc.)
-  // Annars får vi minnesläckor!
-  // =============================================================
   @override
   void dispose() {
     _scrollController.dispose();
-    super.dispose(); // Alltid anropa super sist!
+    super.dispose();
   }
 
   // =============================================================
-  // _loadInitialData() — Ladda första kolumnen + sparade färger
+  // _loadInitialData() — Ladda första kolumnen
   // =============================================================
+  // Mappfärger laddas nu av HomeScreen — vi behöver bara
+  // hämta innehållet i startmappen.
   Future<void> _loadInitialData() async {
-    // Ladda mappfärger och första mappens innehåll parallellt
-    final colors = await FolderColorStore.getAllColors();
     final items = await FileOperations.listDirectory(widget.initialPath);
-
-    // setState() säger till Flutter: "Data har ändrats, rita om!"
-    // VIKTIGT: Ändra ALDRIG state utan setState() — då ser
-    // användaren inte förändringen.
     setState(() {
-      _folderColors = colors;
       _columns = [ColumnData(path: widget.initialPath, items: items)];
       _isLoading = false;
     });
@@ -132,14 +105,10 @@ class _ColumnBrowserState extends State<ColumnBrowser> {
   // =============================================================
   // _onItemTapped() — Användaren klickade på en fil/mapp
   // =============================================================
-  // columnIndex = vilken kolumn klicket skedde i
-  // itemIndex = vilken rad i den kolumnen
-  // =============================================================
   Future<void> _onItemTapped(int columnIndex, int itemIndex) async {
     final item = _columns[columnIndex].items[itemIndex];
     final now = DateTime.now();
 
-    // Kolla om det är ett dubbelklick (samma item, inom tidsgränsen)
     final isDoubleTap =
         _lastTapTime != null &&
         _lastTapPath == item.path &&
@@ -153,27 +122,20 @@ class _ColumnBrowserState extends State<ColumnBrowser> {
       return;
     }
 
-    // Markera raden som vald
     _columns[columnIndex].selectedIndex = itemIndex;
 
     if (item.isDirectory) {
-      // ----- MAPP: Öppna i ny kolumn -----
+      // Meddela HomeScreen vilken mapp som är markerad
+      widget.onFolderSelected?.call(item.path);
 
-      // Ta bort alla kolumner EFTER den klickade
-      // (om användaren klickar "bakåt" i en tidigare kolumn)
       final newColumns = _columns.sublist(0, columnIndex + 1);
-
-      // Ladda innehållet i den nya mappen
       final items = await FileOperations.listDirectory(item.path);
-
-      // Lägg till den nya kolumnen
       newColumns.add(ColumnData(path: item.path, items: items));
 
       setState(() {
         _columns = newColumns;
       });
 
-      // Scrolla till höger så nya kolumnen syns
       Future.delayed(const Duration(milliseconds: 50), () {
         if (_scrollController.hasClients) {
           _scrollController.animateTo(
@@ -184,24 +146,19 @@ class _ColumnBrowserState extends State<ColumnBrowser> {
         }
       });
     } else {
-      // ----- FIL: Ta bort kolumner efter den klickade -----
-      // (Vi öppnar inte filer ännu — det kommer i ett senare steg!)
+      // Fil vald — ingen mapp markerad
+      widget.onFolderSelected?.call(null);
+
       setState(() {
         _columns = _columns.sublist(0, columnIndex + 1);
       });
     }
   }
 
-  // =============================================================
-  // _openFile() — Öppna en fil med systemets standardprogram
-  // =============================================================
   Future<void> _openFile(FileItem item) async {
     await FileOperations.openFile(item.path);
   }
 
-  // =============================================================
-  // _refreshColumn() — Ladda om en kolumns innehåll efter en operation
-  // =============================================================
   Future<void> _refreshColumn(int columnIndex) async {
     final path = _columns[columnIndex].path;
     final items = await FileOperations.listDirectory(path);
@@ -211,9 +168,51 @@ class _ColumnBrowserState extends State<ColumnBrowser> {
   }
 
   // =============================================================
-  // _showFileContextMenu() — Visa högerklick-meny för filer
+  // _showFileContextMenu() — Högerklick-meny för filer
   // =============================================================
   Future<void> _showFileContextMenu(
+    BuildContext ctx,
+    Offset position,
+    FileItem item,
+    int columnIndex,
+  ) async {
+    final result = await showMenu<String>(
+      context: ctx,
+      position: RelativeRect.fromLTRB(
+        position.dx,
+        position.dy,
+        position.dx,
+        position.dy,
+      ),
+      items: [
+        const PopupMenuItem(value: 'copy', child: Text('Kopiera')),
+        PopupMenuItem(
+          value: 'paste',
+          enabled: _copiedFilePath != null,
+          child: const Text('Klistra in'),
+        ),
+        const PopupMenuItem(value: 'rename', child: Text('Byta namn')),
+        const PopupMenuItem(value: 'delete', child: Text('Ta bort')),
+      ],
+    );
+
+    switch (result) {
+      case 'copy':
+        setState(() => _copiedFilePath = item.path);
+      case 'paste':
+        await _pasteFile(columnIndex);
+      case 'rename':
+        await _renameFile(item, columnIndex);
+      case 'delete':
+        await _deleteFile(item, columnIndex);
+    }
+  }
+
+  // =============================================================
+  // _showDirectoryContextMenu() — Högerklick-meny för mappar
+  // =============================================================
+  // Färgvalet finns nu i Sidebar — menyn har bara fil-operationer.
+  Future<void> _showDirectoryContextMenu(
     BuildContext ctx,
     Offset position,
     FileItem item,
@@ -307,121 +306,14 @@ class _ColumnBrowserState extends State<ColumnBrowser> {
   }
 
   // =============================================================
-  // _onFolderColorChanged() — Användaren valde en ny färg
-  // =============================================================
-  Future<void> _onFolderColorChanged(String path, ColorTag tag) async {
-    // Spara till disk
-    await FolderColorStore.setColor(path, tag);
-
-    // Uppdatera lokalt state
-    setState(() {
-      if (tag == ColorTag.none) {
-        _folderColors.remove(path);
-      } else {
-        _folderColors[path] = tag;
-      }
-    });
-  }
-
-  // =============================================================
-  // _showColorPicker() — Visa färgväljare för en mapp
-  // =============================================================
-  Future<void> _showDirectoryContextMenu(
-    BuildContext ctx,
-    Offset position,
-    FileItem item,
-    int columnIndex,
-  ) async {
-    final currentColor = _folderColors[item.path] ?? ColorTag.none;
-    final result = await showMenu<String>(
-      context: ctx,
-      position: RelativeRect.fromLTRB(
-        position.dx,
-        position.dy,
-        position.dx,
-        position.dy,
-      ),
-      items: [
-        const PopupMenuItem(value: 'copy', child: Text('Kopiera')),
-        PopupMenuItem(
-          value: 'paste',
-          enabled: _copiedFilePath != null,
-          child: const Text('Klistra in'),
-        ),
-        const PopupMenuItem(value: 'rename', child: Text('Byta namn')),
-        const PopupMenuItem(value: 'delete', child: Text('Ta bort')),
-        const PopupMenuDivider(),
-        PopupMenuItem(
-          enabled: false,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Mappfärg', style: TextStyle(fontSize: 12)),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: ColorTag.values.map((tag) {
-                  final isSelected = tag == currentColor;
-                  return GestureDetector(
-                    onTap: () => Navigator.pop(ctx, 'color_${tag.name}'),
-                    child: Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        color: tag == ColorTag.none
-                            ? Colors.grey.shade800
-                            : tag.color,
-                        shape: BoxShape.circle,
-                        border: isSelected
-                            ? Border.all(color: Colors.white, width: 3)
-                            : null,
-                      ),
-                      child: tag == ColorTag.none
-                          ? const Icon(Icons.block, size: 16, color: Colors.grey)
-                          : isSelected
-                              ? const Icon(Icons.check, size: 16, color: Colors.white)
-                              : null,
-                    ),
-                  );
-                }).toList(),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-
-    if (result == null) return;
-    if (result.startsWith('color_')) {
-      final tagName = result.substring(6);
-      final tag = ColorTag.values.firstWhere((t) => t.name == tagName);
-      _onFolderColorChanged(item.path, tag);
-      return;
-    }
-    switch (result) {
-      case 'copy':
-        setState(() => _copiedFilePath = item.path);
-      case 'paste':
-        await _pasteFile(columnIndex);
-      case 'rename':
-        await _renameFile(item, columnIndex);
-      case 'delete':
-        await _deleteFile(item, columnIndex);
-    }
-  }
-
-  // =============================================================
   // build() — Rita hela widgeten
   // =============================================================
   @override
   Widget build(BuildContext context) {
-    // Visa laddningssnurra medan vi hämtar data
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
 
-    // Huvudlayout: Horisontellt scrollbar rad med kolumner
     return Scrollbar(
       controller: _scrollController,
       child: SingleChildScrollView(
@@ -449,21 +341,19 @@ class _ColumnBrowserState extends State<ColumnBrowser> {
         ),
       ),
       child: column.items.isEmpty
-          // Tom mapp — visa meddelande
           ? const Center(
               child: Padding(
                 padding: EdgeInsets.all(16),
                 child: Text('Tom mapp', style: TextStyle(color: Colors.grey)),
               ),
             )
-          // ListView.builder skapar items LAZY — bara de som syns på skärmen.
-          // Mycket effektivare än att bygga alla på en gång!
           : ListView.builder(
               itemCount: column.items.length,
               itemBuilder: (context, itemIndex) {
                 final item = column.items[itemIndex];
                 final isSelected = column.selectedIndex == itemIndex;
-                final folderColor = _folderColors[item.path];
+                // Hämta färg från widget.folderColors (ägs av HomeScreen)
+                final folderColor = widget.folderColors[item.path];
 
                 return _buildFileRow(
                   item: item,
@@ -499,21 +389,15 @@ class _ColumnBrowserState extends State<ColumnBrowser> {
             : null,
         child: Row(
           children: [
-            // ----- Ikon -----
             _buildIcon(item, folderColor),
             const SizedBox(width: 10),
-
-            // ----- Filnamn -----
-            // Expanded = ta upp all tillgänglig plats (flex)
             Expanded(
               child: Text(
                 item.name,
-                overflow: TextOverflow.ellipsis, // "..." om texten är för lång
+                overflow: TextOverflow.ellipsis,
                 style: const TextStyle(fontSize: 13),
               ),
             ),
-
-            // ----- Pil för mappar (visar att man kan navigera in) -----
             if (item.isDirectory)
               Icon(Icons.chevron_right, size: 16, color: Colors.grey.shade600),
           ],
@@ -544,17 +428,15 @@ class _ColumnBrowserState extends State<ColumnBrowser> {
   // =============================================================
   Widget _buildIcon(FileItem item, ColorTag? colorTag) {
     if (item.isDirectory) {
-      // Mapp-ikon med valfri färg
       return Icon(
         Icons.folder,
         size: 20,
         color: (colorTag != null && colorTag != ColorTag.none)
             ? colorTag.color
-            : const Color(0xFF90CAF9), // Ljusblå default
+            : const Color(0xFF90CAF9),
       );
     }
 
-    // Fil-ikon baserat på ändelse
     IconData iconData;
     Color iconColor;
 
