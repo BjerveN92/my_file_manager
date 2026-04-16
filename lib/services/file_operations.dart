@@ -13,14 +13,11 @@ class FileOperations {
   static Future<List<FileItem>> listDirectory(String path) async {
     try {
       final directory = Directory(path);
-
       if (!await directory.exists()) {
         return []; // Tom lista om mappen inte finns
       }
       // list() hämtar alla filer och mappar i katalogen.
-      // .toList() konverterar Stream till en vanlig lista.
       final entities = await directory.list().toList();
-
       // Konvertera varje FileSystemEntity till vår FileItem-modell.
       final items = entities
           .where((entity) {
