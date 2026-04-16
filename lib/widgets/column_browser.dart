@@ -1,25 +1,6 @@
 // =============================================================
 // widgets/column_browser.dart — Miller Columns (kolumnbaserad vy)
 // =============================================================
-// DET HÄR ÄR HJÄRTAT AV APPEN!
-//
-// Miller Columns = Varje mapp du klickar på öppnar en ny kolumn
-// till höger, precis som macOS Finder i Column View.
-//
-// HUR DET FUNGERAR:
-//   1. Vi har en lista med "kolumner" (List<ColumnData>)
-//   2. Varje kolumn representerar en mapp och dess innehåll
-//   3. När du klickar på en mapp → lägg till en ny kolumn
-//   4. Alla kolumner visas i en horisontellt scrollbar Row
-//
-// FLUTTER-KONCEPT HÄR:
-//   - StatefulWidget — widget med föränderligt state
-//   - setState() — säg till Flutter att rita om widgeten
-//   - ListView.builder — effektiv lista (bygger bara synliga items)
-//   - ScrollController — kontrollera scroll-position
-//   - Callback-funktioner — kommunikation mellan widgets
-// =============================================================
-
 import 'package:flutter/material.dart';
 import '../models/file_item.dart';
 import '../models/color_tags.dart';

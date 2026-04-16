@@ -1,17 +1,6 @@
 // =============================================================
 // screens/home_screen.dart — Huvudskärmen
 // =============================================================
-// Det här är skärmen som sätter ihop alla widgets:
-//   - Sidebar (vänster)
-//   - BreadcrumbBar (toppen)
-//   - ColumnBrowser (mitten — huvudinnehållet)
-//
-// FLUTTER-KONCEPT HÄR:
-//   - StatefulWidget med state som delas mellan barn-widgets
-//   - GlobalKey — ett sätt att komma åt en widget "utifrån"
-//   - Layout med Row, Column, Expanded
-// =============================================================
-
 import 'package:flutter/material.dart';
 import '../models/color_tags.dart';
 import '../services/file_operations.dart';
@@ -28,20 +17,12 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  // Den aktuella rotmappen (startar med hemkatalogen)
   late String _rootPath;
 
-  // "Key" tvingar Flutter att bygga om ColumnBrowser helt från scratch
-  // när vi byter rotmapp. Utan detta kan gammal data hänga kvar.
   Key _browserKey = UniqueKey();
 
-  // Mappfärger ägs nu av HomeScreen och skickas ned till Sidebar och
-  // ColumnBrowser. På så sätt kan Sidebar ändra en färg och
-  // ColumnBrowser ser förändringen direkt.
   Map<String, ColorTag> _folderColors = {};
 
-  // Sökvägen till den mapp som användaren senast markerade i
-  // ColumnBrowser. Null = ingen mapp markerad (t.ex. en fil vald).
   String? _selectedFolderPath;
 
   // =============================================================
@@ -68,7 +49,8 @@ class _HomeScreenState extends State<HomeScreen> {
   void _navigateTo(String path) {
     setState(() {
       _rootPath = path;
-      _browserKey = UniqueKey(); // Ny nyckel = Flutter bygger om ColumnBrowser helt
+      _browserKey =
+          UniqueKey(); // Ny nyckel = Flutter bygger om ColumnBrowser helt
       _selectedFolderPath = null; // Rensa markering vid rotbyte
     });
   }
@@ -76,8 +58,6 @@ class _HomeScreenState extends State<HomeScreen> {
   // =============================================================
   // _onFolderSelected() — ColumnBrowser berättar vilken mapp som är vald
   // =============================================================
-  // Anropas när användaren klickar på en mapp i ColumnBrowser.
-  // path = null om en fil valdes (ingen mapp markerad).
   void _onFolderSelected(String? path) {
     setState(() {
       _selectedFolderPath = path;
@@ -90,7 +70,6 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _onFolderColorChanged(String path, ColorTag tag) async {
     // Spara till disk (SharedPreferences)
     await FolderColorStore.setColor(path, tag);
-
     // Uppdatera state — triggar omritning i Sidebar OCH ColumnBrowser
     setState(() {
       if (tag == ColorTag.none) {

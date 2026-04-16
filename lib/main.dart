@@ -1,18 +1,6 @@
 // =============================================================
 // main.dart — Appens startpunkt (entry point)
 // =============================================================
-// Det här är första filen Flutter letar efter när appen startar.
-//
-// GRUNDREGEL I DART:
-//   Varje app börjar med funktionen main().
-//   I Flutter kallar vi runApp() som tar emot vår "root widget".
-//
-// WIDGET = Allt i Flutter är widgets!
-//   - En knapp? Widget.
-//   - En text? Widget.
-//   - Hela skärmen? Widget.
-//   Widgets bygger på varandra som LEGO-klossar.
-// =============================================================
 
 import 'package:flutter/material.dart'; // Flutters grund-bibliotek med Material Design
 import 'screens/home_screen.dart'; // Vår huvudskärm
@@ -27,17 +15,8 @@ void main() {
 // =============================================================
 // FileManagerApp — Vår rot-widget (root widget)
 // =============================================================
-// StatelessWidget = En widget som INTE ändrar sig efter att den byggts.
-//   Perfekt för saker som inte behöver uppdateras dynamiskt,
-//   t.ex. app-tema, titel, grundinställningar.
-//
-// Det finns också StatefulWidget = En widget som KAN ändra sig.
-//   Den använder vi för skärmar med interaktion (knapptryck, scroll, etc.)
-//   Mer om det i home_screen.dart!
-// =============================================================
+
 class FileManagerApp extends StatelessWidget {
-  // "const" = skapar objektet vid kompilering (snabbare).
-  // "super.key" = skickar vidare en unik nyckel till förälder-klassen.
   const FileManagerApp({super.key});
 
   // build() anropas av Flutter för att "rita" widgeten.

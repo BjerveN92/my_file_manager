@@ -1,17 +1,6 @@
 // =============================================================
 // widgets/breadcrumb_bar.dart — Sökvägs-navigator (breadcrumbs)
 // =============================================================
-// Breadcrumbs visar var du är i filsystemet, t.ex:
-//   Hem > Dokument > Projekt > min_app
-//
-// Varje del är klickbar så du snabbt kan hoppa tillbaka.
-//
-// FLUTTER-KONCEPT HÄR:
-//   - Callback-funktioner som parametrar
-//   - Listor och .asMap() för index
-//   - Horisontell scrollning med SingleChildScrollView
-// =============================================================
-
 import 'dart:io';
 import 'package:flutter/material.dart';
 
@@ -49,15 +38,11 @@ class BreadcrumbBar extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         child: Row(
           children: [
-            // .asMap() ger oss index + värde (som enumerate i Python)
-            // .entries ger oss MapEntry med .key (index) och .value (värdet)
             ...parts.asMap().entries.map((entry) {
               final index = entry.key;
               final part = entry.value;
               final isLast = index == parts.length - 1;
-
               // Bygg upp sökvägen till denna del
-              // T.ex. index 1 → "/home/user"
               final pathUpToHere = Platform.isWindows
                   ? parts.sublist(0, index + 1).join(Platform.pathSeparator)
                   : Platform.pathSeparator +

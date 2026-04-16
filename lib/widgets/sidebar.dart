@@ -1,16 +1,6 @@
 // =============================================================
 // widgets/sidebar.dart — Sidopanel med snabbåtkomst
 // =============================================================
-// Visar en lista med vanliga mappar (Hem, Dokument, etc.)
-// samt en färgpalett längst ned för att färglägga den mapp
-// som för tillfället är markerad i ColumnBrowser.
-//
-// FLUTTER-KONCEPT HÄR:
-//   - StatelessWidget med callbacks
-//   - Ikon-mappning
-//   - Spacer() för att pusha innehåll till botten
-// =============================================================
-
 import 'package:flutter/material.dart';
 import '../models/color_tags.dart';
 import '../services/file_operations.dart';
@@ -165,10 +155,7 @@ class Sidebar extends StatelessWidget {
                         shape: BoxShape.circle,
                         border: isSelected
                             ? Border.all(color: Colors.white, width: 2.5)
-                            : Border.all(
-                                color: Colors.grey.shade700,
-                                width: 1,
-                              ),
+                            : Border.all(color: Colors.grey.shade700, width: 1),
                       ),
                       child: tag == ColorTag.none
                           ? Icon(
@@ -177,12 +164,12 @@ class Sidebar extends StatelessWidget {
                               color: Colors.grey.shade500,
                             )
                           : isSelected
-                              ? const Icon(
-                                  Icons.check,
-                                  size: 14,
-                                  color: Colors.white,
-                                )
-                              : null,
+                          ? const Icon(
+                              Icons.check,
+                              size: 14,
+                              color: Colors.white,
+                            )
+                          : null,
                     ),
                   );
                 }).toList(),
