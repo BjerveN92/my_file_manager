@@ -15,7 +15,7 @@
 // =============================================================
 
 import 'package:flutter/material.dart'; // Flutters grund-bibliotek med Material Design
-import 'screens/home_screen.dart'; // Vår huvudskärm (skapar vi snart)
+import 'screens/home_screen.dart'; // Vår huvudskärm
 
 /// main() — Här startar allt!
 /// "void" betyder att funktionen inte returnerar något värde.

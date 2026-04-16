@@ -13,7 +13,9 @@
 // =============================================================
 
 import 'package:flutter/material.dart';
+import '../models/color_tags.dart';
 import '../services/file_operations.dart';
+import '../services/folder_color_store.dart';
 import '../widgets/sidebar.dart';
 import '../widgets/breadcrumb_bar.dart';
 import '../widgets/column_browser.dart';
@@ -33,15 +35,31 @@ class _HomeScreenState extends State<HomeScreen> {
   // när vi byter rotmapp. Utan detta kan gammal data hänga kvar.
   Key _browserKey = UniqueKey();
 
+  // Mappfärger ägs nu av HomeScreen och skickas ned till Sidebar och
+  // ColumnBrowser. På så sätt kan Sidebar ändra en färg och
+  // ColumnBrowser ser förändringen direkt.
+  Map<String, ColorTag> _folderColors = {};
+
+  // Sökvägen till den mapp som användaren senast markerade i
+  // ColumnBrowser. Null = ingen mapp markerad (t.ex. en fil vald).
+  String? _selectedFolderPath;
+
   // =============================================================
   // initState() — Sätt startvärden
   // =============================================================
   @override
   void initState() {
     super.initState();
-    // "late" i deklarationen ovan betyder: "Jag lovar att sätta värdet
-    // innan det används". Vi sätter det här i initState.
     _rootPath = FileOperations.getHomeDirectory();
+    _loadFolderColors();
+  }
+
+  // Ladda sparade mappfärger från disk
+  Future<void> _loadFolderColors() async {
+    final colors = await FolderColorStore.getAllColors();
+    setState(() {
+      _folderColors = colors;
+    });
   }
 
   // =============================================================
@@ -50,54 +68,72 @@ class _HomeScreenState extends State<HomeScreen> {
   void _navigateTo(String path) {
     setState(() {
       _rootPath = path;
-      // Ny nyckel = Flutter bygger om ColumnBrowser helt
-      _browserKey = UniqueKey();
+      _browserKey = UniqueKey(); // Ny nyckel = Flutter bygger om ColumnBrowser helt
+      _selectedFolderPath = null; // Rensa markering vid rotbyte
+    });
+  }
+
+  // =============================================================
+  // _onFolderSelected() — ColumnBrowser berättar vilken mapp som är vald
+  // =============================================================
+  // Anropas när användaren klickar på en mapp i ColumnBrowser.
+  // path = null om en fil valdes (ingen mapp markerad).
+  void _onFolderSelected(String? path) {
+    setState(() {
+      _selectedFolderPath = path;
+    });
+  }
+
+  // =============================================================
+  // _onFolderColorChanged() — Sidebar valde en ny färg för en mapp
+  // =============================================================
+  Future<void> _onFolderColorChanged(String path, ColorTag tag) async {
+    // Spara till disk (SharedPreferences)
+    await FolderColorStore.setColor(path, tag);
+
+    // Uppdatera state — triggar omritning i Sidebar OCH ColumnBrowser
+    setState(() {
+      if (tag == ColorTag.none) {
+        _folderColors.remove(path);
+      } else {
+        _folderColors[path] = tag;
+      }
     });
   }
 
   // =============================================================
   // build() — Bygg layouten
   // =============================================================
-  // Layouten ser ut så här:
-  //
-  // ┌──────────┬────────────────────────────────┐
-  // │          │  Breadcrumb: Hem > Dok > ...    │
-  // │ Sidebar  ├────────────────────────────────│
-  // │          │  ColumnBrowser                  │
-  // │ Hem      │  [Kol1] [Kol2] [Kol3] →       │
-  // │ Dok      │                                │
-  // │ Nedl.    │                                │
-  // │          │                                │
-  // └──────────┴────────────────────────────────┘
-  // =============================================================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // Scaffold ger grundstrukturen: appbar, body, etc.
       backgroundColor: const Color(0xFF181825),
       body: Row(
         children: [
           // ===== VÄNSTER: Sidebar =====
-          Sidebar(currentPath: _rootPath, onFolderSelected: _navigateTo),
+          Sidebar(
+            currentPath: _rootPath,
+            onFolderSelected: _navigateTo,
+            selectedFolderPath: _selectedFolderPath,
+            folderColors: _folderColors,
+            onFolderColorChanged: _onFolderColorChanged,
+          ),
 
           // ===== HÖGER: Breadcrumb + ColumnBrowser =====
-          // Expanded = ta upp RESTEN av platsen (efter sidebar)
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // --- Toppen: Breadcrumb ---
                 BreadcrumbBar(
                   currentPath: _rootPath,
                   onPathTapped: _navigateTo,
                 ),
-
-                // --- Mitten: ColumnBrowser ---
-                // Expanded här också = fyll resten av höjden
                 Expanded(
                   child: ColumnBrowser(
-                    key: _browserKey, // Ny key → ny widget
+                    key: _browserKey,
                     initialPath: _rootPath,
+                    folderColors: _folderColors,
+                    onFolderSelected: _onFolderSelected,
                   ),
                 ),
               ],
